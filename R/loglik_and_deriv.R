@@ -1,7 +1,18 @@
-calc_linear_loglik <- function(reg_coef, design, outcome, noise_var = 1) {
+calc_loglik.linear_model <- function(model, reg_coef, design, outcome, noise_var = 1) {
   predicted_val <- design %*% reg_coef
   loglik <- - 0.5 * sum((outcome - predicted_val)^2) / noise_var
   return(loglik)
+}
+#' @rdname calc_loglik
+#'
+#' @name calc_loglik
+#'
+#' @export
+#'
+.S3method("calc_loglik.linear_model", "linear_model", calc_loglik.linear_model)
+
+calc_loglik <- function(model, reg_coef, design, outcome, ...){
+  UseMethod("calc_loglik")
 }
 
 calc_linear_grad <- function(reg_coef, design, outcome, noise_var = 1) {
@@ -11,8 +22,8 @@ calc_linear_grad <- function(reg_coef, design, outcome, noise_var = 1) {
   return(grad)
 }
 
-calc_logit_loglik <- function(
-    reg_coef, design, outcome
+calc_loglik.logit_model <- function(
+    model, reg_coef, design, outcome
 ) {
   if (is.list(outcome)) {
     n_success <- outcome$n_success
@@ -26,6 +37,14 @@ calc_logit_loglik <- function(
     # TODO: improve numerical stability for logit_prob >> 1
   return(loglik)
 }
+
+#' @rdname calc_loglik
+#'
+#' @name calc_loglik
+#'
+#' @export
+#'
+.S3method("calc_loglik.logit_model", "logit_model", calc_loglik.logit_model)
 
 calc_logit_grad <- function(reg_coef, design, outcome) {
   loglink_grad <- calc_logit_loglink_deriv(reg_coef, design, outcome, order = 1)

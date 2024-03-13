@@ -21,12 +21,12 @@ find_mle <- function(model, option) {
     if (model$name == 'linear') {
       result <- solve_via_least_sq(model$design, model$outcome)
     } else {
-      result <- solve_via_newton(
+      result <- solve_via_newton(model, 
         model$design, model$outcome, option$n_max_iter, option$rel_tol, option$abs_tol
       )
     }
   } else {
-    result <- solve_via_optim(model$design, model$outcome, model$name, option$mle_solver)
+    result <- solve_via_optim(model, model$design, model$outcome, model$name, option$mle_solver)
   }
   return(result)
 }
@@ -42,7 +42,7 @@ solve_via_least_sq <- function(design, outcome) {
   return(list(coef = mle_coef, cov_est = cov_est))
 }
 
-solve_via_newton <- function(design, outcome, n_max_iter, rel_tol, abs_tol) {
+solve_via_newton <- function(model, design, outcome, n_max_iter, rel_tol, abs_tol) {
   if (is.null(n_max_iter)) { n_max_iter <- 25L }
   if (is.null(rel_tol)) { rel_tol <- 1e-6 }
   if (is.null(abs_tol)) { abs_tol <- 1e-6 }
@@ -50,11 +50,11 @@ solve_via_newton <- function(design, outcome, n_max_iter, rel_tol, abs_tol) {
   n_iter <- 0L
   max_iter_reached <- FALSE
   converged <- FALSE
-  curr_loglik <- calc_logit_loglik(coef_est, design, outcome)
+  curr_loglik <- calc_loglik(model,coef_est, design, outcome)
   while (!(converged || max_iter_reached)) {
     prev_loglik <- curr_loglik
     coef_est <- take_one_newton_step(coef_est, design, outcome)
-    curr_loglik <- calc_logit_loglik(coef_est, design, outcome)
+    curr_loglik <- calc_loglik(model, coef_est, design, outcome)
     converged <- (
       2 * abs(curr_loglik - prev_loglik) < (abs_tol + rel_tol * abs(curr_loglik))
     )
@@ -94,18 +94,18 @@ take_one_newton_step <- function(
   return(coef_est = coef_est)
 }
 
-solve_via_optim <- function(design, outcome, model_name, method) {
+solve_via_optim <- function(model, design, outcome, model_name, method) {
   init_coef <- rep(0, ncol(design))
   if (model_name == 'linear') {
     obj_fn <- function (coef) {
-      calc_linear_loglik(coef, design, outcome) 
+      calc_loglik(model, coef, design, outcome) 
     }
     obj_grad <- function (coef) {
       calc_linear_grad(coef, design, outcome)
     }
   } else {
     obj_fn <- function (coef) {
-      calc_logit_loglik(coef, design, outcome) 
+      calc_loglik(model, coef, design, outcome) 
     }
     obj_grad <- function (coef) {
       calc_logit_grad(coef, design, outcome)
